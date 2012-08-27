@@ -207,34 +207,18 @@ class: center, middle
  
  
 ---
- 
-.task[Part 2: The mechanics]
-# Using AMT as a .orange[**Requester**]
-### Two key types of .red[**HIT**]s
- 
-- **Amazon Template**
-    - Hosted directly on Amazon's servers
-    - Mostly restricted to simple HTML
-    - Easy to use (don't need your own server)
-    - Tools for helping you "build" the question
- 
-- **External Question**
-    - Pushes user off the AMT site to your own website
-    - You can leverage full power of the "Interweb" (custom Javascript, Flash, etc...)
-    - You need to have a publically accessible webserver
-    - Most coding involved
-        - Our software is intended to help with this
- 
----
+class: large
 
-class: center, middle
-.task[Part 2: The mechanics]
-# Demo: Using AMT as a .orange[**Requester**]
- 
-(using Amazon templates) 
- 
-<iframe src="https://requester.mturk.com/create/projects/new"></iframe>
- 
+# External Questions
+
+- Link to a site. Could be anything! Must link back to Amazon. 
+- You are responsible for
+	1. Requesting an *ExternalQuestion*-type HIT.
+	1. Hosting your experiment.
+	1. Providing the participant with a link certifying that they have
+	   completed the task.
+	1. Approving submitted HITs, allowing workers to receive payment.
+
 ---
  
 .task[Part 2: The mechanics]
@@ -291,7 +275,7 @@ _Oddly, there is no web interface for this. You need to use scripts. Fortunately
 - Once they click "View a HIT in this group," they see whatever your site is serving up, in our case this is the default:
 
 <iframe src="http://puncture.psych.nyu.edu:5001/mturk?assignmentId=ASSIGNMENT_ID_NOT_AVAILABLE&hitId=dummyhit"></iframe>
- 
+
 ---
 
 # A Participant Accepts
