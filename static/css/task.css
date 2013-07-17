@@ -2,13 +2,25 @@
 
 body {
 	/* background: #999; */
-	background: black; /* #808090; */
-	color: white;
+	background: white; /* #808090; */
+	color: black;
 	text-align: center;
 	font-family: Verdana, Helvetica, sans-serif;
 	margin: 0 auto;
         margin-top: 100px;
 	width: 800px;
+}
+
+
+#editor {
+        margin: 0 auto;
+        width: 400px;
+        height: 400px;
+        border: 1px solid gray;
+}
+
+#instructions {
+        margin-bottom: 10px;
 }
 
 h1 {
