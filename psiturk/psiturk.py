@@ -4,13 +4,14 @@ import logging
 import fnmatch
 from functools import wraps
 from random import choice
+import json
 try:
     from collections import Counter
 except ImportError:
     from counter import Counter
 
 # Importing flask
-from flask import Flask, render_template, request, Response, make_response, redirect, jsonify
+from flask import Flask, render_template, request, Response, make_response, redirect, jsonify, Markup
 
 # Database setup
 from db import db_session, init_db
@@ -410,7 +411,12 @@ def update(id=None):
         print "DB error: Unique user not found."
     
     if hasattr(request, 'json'):
-        user.datastring = str(request.json)
+    
+        #print "THE DATA:\n"
+        print json.dumps(request.json)
+        user.datastring = json.dumps(request.json)
+
+        #user.datastring = str(request.json)
         db_session.add(user)
         db_session.commit()
     
@@ -514,6 +520,19 @@ def completed():
     db_session.add(user)
     db_session.commit()
     return render_template('closepopup.html')
+
+
+@app.route('/drawings', methods=['GET'])
+@requires_auth
+def viewdrawings():
+    """
+    Return list of submitted drawing data
+    """
+
+    data = [json.loads(subj.datastring) for subj in Participant.query.all() if subj.datastring!='null']
+    drawing_data = [json.loads(d['questiondata']['drawing_json']) for d in data]
+    return jsonify(drawings=drawing_data)
+
 
 #------------------------------------------------------
 # routes for displaying the database/editing it in html

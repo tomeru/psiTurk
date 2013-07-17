@@ -32,7 +32,7 @@ var Drawing = function() {
 	$('.continue').click(function() {
 		drawing_data = sketchpad.json(); 
 		psiTurk.recordUnstructuredData("drawing_json", drawing_data);
-		debriefing();
+		psiTurk.saveData({success: debriefing});
 	});
 
 };
