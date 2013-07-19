@@ -11,7 +11,7 @@ except ImportError:
     from counter import Counter
 
 # Importing flask
-from flask import Flask, render_template, request, Response, make_response, redirect, jsonify, Markup
+from flask import Flask, render_template, request, Response, make_response, redirect, jsonify
 
 # Database setup
 from db import db_session, init_db
@@ -523,7 +523,6 @@ def completed():
 
 
 @app.route('/drawings', methods=['GET'])
-@requires_auth
 def viewdrawings():
     """
     Return list of submitted drawing data
