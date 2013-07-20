@@ -16,12 +16,14 @@ var ncols = 5,
 	drawings;
 
 var size = totalwidth/ncols;
+var sc = size/original_size;
 
 function renderDrawing(data) {
 
 	var strokes = data;
+
 	for (var i=0; i<strokes.length; i++) {
-		strokes[i]['transform'] = 's'+(size/original_size);
+		strokes[i]['transform'] = 's'+sc+','+sc+',0,0';
 	};
 
 	var sketchpad = Raphael.sketchpad("viewer", {
