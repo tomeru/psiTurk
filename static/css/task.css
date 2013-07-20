@@ -1,4 +1,4 @@
-@import url(http://fonts.googleapis.com/css?family=Crimson+Text:400,600italic);
+@import url(http://fonts.googleapis.com/css?family=Love+Ya+Like+A+Sister);
 
 body {
 	/* background: #999; */
@@ -31,9 +31,8 @@ body {
 }
 
 h1 {
-        font-family: "Crimson Text";
+        font-family: "Love Ya Like A Sister";
         font-size: 42pt;
-        font-style: italic;
 }
 
 a {
@@ -189,7 +188,7 @@ input {
 #affirmationbox {
 	position: relative;
 	margin:  0 auto;
-	border: 1px dotted white; 
+	border: 1px dotted black; 
 	padding: 10px 20px;
 	vertical-align: middle;
 }
