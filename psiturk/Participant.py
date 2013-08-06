@@ -1,10 +1,15 @@
+""" 
+Defines the ORM schema for a database participant, as well as functions for
+accessing participants in the database and information within a participant's
+record.
+"""
 
 import datetime
 import io, csv, json
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text
 
-from db import Base
-from psiturk_config import PsiturkConfig
+from db import Base, db_session
+from PsiturkConfig import PsiturkConfig
 
 config = PsiturkConfig()
 
@@ -51,7 +56,17 @@ class Participant(Base):
             self.status,
             self.codeversion)
     
+    def commit(self):
+        """
+        Records changes made to the Participant object in the database.
+        """
+        db_session.add(self)
+        db_session.commit()
+    
     def get_trial_data(self):
+        """
+        Access individual trial data stored for this subject.
+        """
         try:
             return(json.loads(self.datastring)["data"])
         except:
@@ -60,6 +75,10 @@ class Participant(Base):
             return("")
     
     def get_event_data(self):
+        """
+        Access data for browser events (e.g., resizes, etc.) stored for this
+        subject.
+        """
         try:
             eventdata = json.loads(self.datastring)["eventdata"]
         except ValueError:
@@ -74,12 +93,18 @@ class Participant(Base):
                 for event in eventdata:
                     csvwriter.writerow((self.uniqueid, event["eventtype"], event["interval"], event["value"], event["timestamp"]))
                 ret = outstring.getvalue()
-            return ret
+            return(ret)
         except:
             print("Error reading record:", self)
             return("")
     
     def get_question_data(self):
+        """
+        Access unstructured data (such as questionnaire responses) stored for
+        this subject.
+        
+        Data are returned as a csv-formatted string.
+        """
         try:
             questiondata = json.loads(self.datastring)["questiondata"]
         except ValueError:
@@ -94,7 +119,7 @@ class Participant(Base):
                 for question in questiondata:
                     csvwriter.writerow((self.uniqueid, question, questiondata[question]))
                 ret = outstring.getvalue()
-            return ret
+            return(ret)
         except:
             print("Error reading record:", self)
             return("")

@@ -14,8 +14,8 @@ setup(
     zip_safe = False,
     entry_points = {
         'console_scripts': [
-            'psiturk = psiturk.dashboard_server:launch',
-            'psiturk-dashboard = psiturk.dashboard_server:launch',
+            'psiturk = psiturk.dashboard:launch',
+            'psiturk-dashboard = psiturk.dashboard:launch',
             'psiturk-server = psiturk.experiment_server:launch',
             'psiturk-setup-example = psiturk.setup_example:setup_example'
         ]

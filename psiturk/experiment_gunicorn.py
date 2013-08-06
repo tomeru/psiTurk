@@ -1,8 +1,7 @@
-# myapp.mycustomapplication
 from gunicorn.app.base import Application
 from gunicorn import util
 import multiprocessing
-from psiturk_config import PsiturkConfig
+from PsiturkConfig import PsiturkConfig
 
 config = PsiturkConfig()
 

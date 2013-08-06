@@ -1,15 +1,9 @@
-import os, sys
-import subprocess,signal
-from threading import Thread, Event
-import urllib2
 import datetime
 from boto.mturk.connection import MTurkConnection, MTurkRequestError
 from boto.mturk.question import ExternalQuestion
 from boto.mturk.qualification import LocaleRequirement, \
     PercentAssignmentsApprovedRequirement, Qualifications
 from flask import jsonify
-import socket
-import webbrowser
 
 class MTurkServices:
     def __init__(self, config):
@@ -172,10 +166,10 @@ class MTurkServices:
         self.mtc.extend_hit(hitid, expiration_increment=int(expiration_increment)*60)
 
     def get_summary(self):
-      try:
-          balance = self.check_balance()
-          summary = jsonify(balance=str(balance))
-          return(summary)
-      except MTurkRequestError as e:
-          print(e.error_message)
-          return(False)
+        try:
+            balance = self.check_balance()
+            summary = jsonify(balance=str(balance))
+            return(summary)
+        except MTurkRequestError as e:
+            print(e.error_message)
+            return(False)

@@ -1,21 +1,22 @@
-# Import flask
 import os, sys, subprocess
 import argparse
 from flask import Flask, Response, render_template, request, jsonify
 import urllib2
-from psiturk_config import PsiturkConfig
-from models import Participant
-import experiment_server_controller as control
+from PsiturkConfig import PsiturkConfig
+from Participant import Participant
+from PsiturkController import is_port_available, ExperimentServerController, DashboardServerController
 from amt_services import MTurkServices
-from db import db_session
 
 config = PsiturkConfig()
 
-server_controller = control.ExperimentServerController(config.getint("Server Parameters", "port"), hostname=config.get("Server Parameters", "host"))
+exp_port = config.getint("Server Parameters", "port")
+exp_host = config.get("Server Parameters", "host")
+experiment_server_controller = ExperimentServerController(exp_host, exp_port)
 
-app = Flask("Psiturk_Dashboard",
-            template_folder=os.path.join(os.path.dirname(__file__), "templates_dashboard"), 
-            static_folder=os.path.join(os.path.dirname(__file__), "static_dashboard"))
+filedir = os.path.dirname(__file__)
+app = Flask("Psiturk_Dashboard", 
+            template_folder=os.path.join(filedir, "templates_dashboard"),
+            static_folder=os.path.join(filedir, "static_dashboard"))
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Some supporting classes needed by the dashboard_server
@@ -44,7 +45,7 @@ class DashboardServerException(Exception):
 @app.route('/dashboard', methods=['GET'])
 def dashboard():
     """
-    Serves dashboard.
+    Serves the dashboard page.
     """
     return render_template('dashboard.html')
 
@@ -61,9 +62,9 @@ def dashboard_model():
         reset_server = config.set_serialized(config_model)
     
     if reset_server:
-        if server_controller.is_port_available() == 0:
-            server_controller.shutdown()
-            server_controller.startup()
+        if experiment_server_controller.is_running():
+            experiment_server_controller.shutdown()
+            experiment_server_controller.startup()
     
     return render_template('dashboard.html')
 
@@ -158,8 +159,7 @@ def approve_worker():
               part = Participant.query.\
                         filter(Participant.assignmentid == assignment_id).one()
               part.status = CREDITED
-              db_session.add(part)
-              db_session.commit()
+              part.commit()
           except:
               print "Error: Database failed to credit participant"
           return("Worker approved")
@@ -170,40 +170,30 @@ def is_port_available_route():
     """
     Check if port is available on localhost
     """
-    if request.method == 'POST':
-        test_port = request.json['port']
-        if test_port == config.getint('Server Parameters', 'port'):
-            is_available = 1
-        else:
-            is_available = control.is_port_available(ip='127.0.0.1', port=test_port)
-        return jsonify(is_available=is_available)
-    return "port check"
+    test_port = request.json['port']
+    if test_port == config.getint('Server Parameters', 'port'):
+        is_available = 1
+    else:
+        is_available = is_port_available(ip='127.0.0.1', port=test_port)
+    return jsonify(is_available=is_available)
 
 @app.route('/is_internet_available', methods=['GET'])
 def is_internet_on():
     try:
         response=urllib2.urlopen('http://www.google.com', timeout=1)
-        return "true"
-    except urllib2.URLError as err: pass
-    return "false"
+        return("true")
+    except urllib2.URLError:
+        return("false")
 
 @app.route("/server_status", methods=["GET"])
 def status():
-    return(jsonify(state=server_controller.is_port_available()))
-
-# this function appears unimplemented in the dashboard currently
-# @app.route("/participant_status", methods=["GET"])
-# def participant_status():
-#     database = Dashboard.Database()
-#     status = database.get_participant_status()
-#     return status
+    return(jsonify(state=experiment_server_controller.is_running()))
 
 @app.route("/favicon.ico")
 def favicon():
     """
     Serving a favicon
     """
-    print "got favicon request"
     return app.send_static_file('favicon.ico')
 
 @app.route("/data/<filename>", methods=["GET"])
@@ -246,21 +236,19 @@ def launch_log():
 #----------------------------------------------
 @app.route("/launch", methods=["GET"])
 def launch_experiment_server():
-    server_controller.startup()
-    return "Experiment Server launching..."
+    experiment_server_controller.startup()
+    return("Experiment Server launching...")
 
 @app.route("/shutdown_dashboard", methods=["GET"])
 def shutdown_dashboard():
     print("Attempting to shut down.")
-    #server_controller.shutdown()  # Must do this; otherwise zombie server remains on dashboard port; not sure why
     request.environ.get('werkzeug.server.shutdown')()
     return("shutting down dashboard server...")
 
 @app.route("/shutdown_psiturk", methods=["GET"])  ## TODO: Kill psiturk reference
 def shutdown_experiment_server():
-    server_controller.shutdown()
+    experiment_server_controller.shutdown()
     return("shutting down Experiment Server...")
-
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Supporting functions
@@ -273,22 +261,24 @@ def run_dev_server():
 #  this is the entry point to the script when running 'psiturk' from the command line
 def launch():
     parser = argparse.ArgumentParser(description='Launch psiTurk dashboard.')
-    parser.add_argument('-i', '--ip', default='localhost',
-                        help='IP to run dashboard on. default is `localhost`.')
+    parser.add_argument('--host', default='localhost',
+                        help='Hostname to run dashboard on. default is `localhost`.')
     parser.add_argument('-p', '--port', default=22361,
                         help='Port to run dashboard on. default is 22361.')
     args = parser.parse_args()
-    dashboard_ip = args.ip
-    dashboard_port = args.port
-    dashboard_route = 'dashboard'
+    dashboard_server_controller = DashboardServerController(args.host, args.port)
     
-    browser_launch_thread = control.launch_browser_when_online(dashboard_ip, dashboard_port, dashboard_route)
-    if not control.is_port_available(ip=dashboard_ip, port=dashboard_port):
-        print "Server is already running on http://{host}:{port}/{route}".format(host=dashboard_ip, port=dashboard_port, route=dashboard_route)
+    browser_launch_thread = dashboard_server_controller.launch_browser_when_online()
+    if dashboard_server_controller.is_running():
+        print "Server is already running on {url}".format(
+            url=dashboard_server_controller.get_url())
     else:
         port = config.getint('Server Parameters', 'port')
-        print "Serving on ", "http://" +  dashboard_ip + ":" + str(dashboard_port)
-        app.run(debug=True, use_reloader=False, port=dashboard_port, host=dashboard_ip)
+        print("Serving on {url}".format(
+            url=dashboard_server_controller.get_url()))
+        app.run(debug=True, use_reloader=False,
+                port=dashboard_server_controller.port,
+                host=dashboard_server_controller.host)
  
 if __name__ == "__main__":
     launch()

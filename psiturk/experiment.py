@@ -13,10 +13,10 @@ from flask import Flask, render_template, request, Response, jsonify
 
 # Database setup
 from db import db_session, init_db
-from models import Participant
+from Participant import Participant
 from sqlalchemy import or_
 
-from psiturk_config import PsiturkConfig
+from PsiturkConfig import PsiturkConfig
 
 config = PsiturkConfig()
 
@@ -36,7 +36,6 @@ CODE_VERSION = config.get('Task Parameters', 'code_version')
 
 # Database configuration and constants
 TABLENAME = config.get('Database Parameters', 'table_name')
-SUPPORT_IE = config.getboolean('Server Parameters', 'support_IE')
 
 # Status codes
 ALLOCATED = 1
@@ -46,6 +45,17 @@ DEBRIEFED = 4
 CREDITED = 5
 QUITEARLY = 6
 
+# Hard-coded template files
+advert_template = "mturkindex.html"
+ie_template = "ie.html"
+consent_template = "consent.html"
+experiment_template = "exp.html"
+debrief_template = "debriefing.html"
+submit_hit_template = "thanks.html"
+error_template = "error.html"
+close_popup_template = "closepopup.html"
+
+# Constructing the actual Flask app.
 app = Flask("Experiment_Server")
 
 #----------------------------------------------
@@ -112,7 +122,7 @@ class ExperimentError(Exception):
     def __init__(self, value):
         self.value = value
         self.errornum = experiment_errors[self.value]
-        self.template = "error.html"
+        self.template = error_template
     def __str__(self):
         return repr(self.value)
     def error_page(self, request):
@@ -201,10 +211,10 @@ def mturkroute():
       These arguments will have appropriate values and we should enter the person
       in the database and provide a link to the experiment popup.
     """
-    if not SUPPORT_IE:
+    if not config.getboolean('Server Parameters', 'support_IE'):
         # Handler for IE users if IE is not supported.
         if request.user_agent.browser == "msie":
-            return render_template( 'ie.html' )
+            return render_template(ie_template)
     if not (request.args.has_key('hitId') and request.args.has_key('assignmentId')):
         raise ExperimentError('hit_assign_worker_id_not_set_in_mturk')
     # Person has accepted the HIT, entering them into the database.
@@ -242,13 +252,12 @@ def mturkroute():
         raise ExperimentError('already_started_exp_mturk')
     elif status == COMPLETED:
         # They've done the whole task, but haven't signed the debriefing yet.
-        return render_template('debriefing.html', 
+        return render_template(debrief_template, 
                                workerId = workerId,
                                assignmentId = assignmentId)
     elif status == DEBRIEFED:
         # They've done the debriefing but perhaps haven't submitted the HIT yet..
-        # Turn asignmentId into original assignment id before sending it back to AMT
-        return render_template('thanks.html', 
+        return render_template(submit_hit_template, 
                                using_sandbox=USING_SANDBOX, 
                                hitid = hitId, 
                                assignmentid = assignmentId, 
@@ -258,7 +267,7 @@ def mturkroute():
     elif status == ALLOCATED or not status:
         # Participant has not yet agreed to the consent. They might not
         # even have accepted the HIT. 
-        return render_template('mturkindex.html', 
+        return render_template(advert_template, 
                                hitid = hitId, 
                                assignmentid = assignmentId, 
                                workerid = workerId)
@@ -276,7 +285,7 @@ def give_consent():
     assignmentId = request.args['assignmentId']
     workerId = request.args['workerId']
     print "Accessing /consent: ", hitId, assignmentId, workerId
-    return render_template('consent.html', hitid = hitId, assignmentid=assignmentId, workerid=workerId)
+    return render_template(consent_template, hitid = hitId, assignmentid=assignmentId, workerid=workerId)
 
 @app.route('/exp', methods=['GET'])
 def start_exp():
@@ -344,7 +353,9 @@ def start_exp():
             if other_assignment:
                 raise ExperimentError('already_did_exp_hit')
     
-    return render_template('exp.html', uniqueId=part.uniqueid, condition=part.cond, counterbalance=part.counterbalance)
+    return render_template(experiment_template, uniqueId=part.uniqueid,
+                           condition=part.cond,
+                           counterbalance=part.counterbalance)
 
 @app.route('/inexp', methods=['POST'])
 def enterexp():
@@ -412,7 +423,7 @@ def quitter():
         db_session.add(user)
         db_session.commit()
     except:
-        return render_template('error.html', errornum= experiment_errors['tried_to_quit'])
+        raise ExperimentError('tried_to_quit')
 
 @app.route('/debrief', methods=['GET'])
 def savedata():
@@ -437,7 +448,7 @@ def savedata():
     db_session.add(user)
     db_session.commit()
     
-    return render_template('debriefing.html', workerId=user.workerid, assignmentId=user.assignmentid)
+    return render_template(debrief_template, workerId=user.workerid, assignmentId=user.assignmentid)
 
 @app.route('/complete', methods=['POST'])
 def completed():
@@ -462,7 +473,7 @@ def completed():
     user.debriefed = agreed == 'true'
     db_session.add(user)
     db_session.commit()
-    return render_template('closepopup.html')
+    return render_template(close_popup_template)
 
 # Is this a security risk?
 @app.route("/ppid")
@@ -489,7 +500,7 @@ init_db()
 
 # Initialize database if necessary
 def run_webserver():
-    host = "0.0.0.0"
+    host = "localhost"
     port = config.getint('Server Parameters', 'port')
     print "Serving on ", "http://" +  host + ":" + str(port)
     app.run(debug=config.getboolean('Server Parameters', 'debug'), host=host, port=port)
