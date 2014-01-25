@@ -50,6 +50,7 @@ class ExperimentServer(Application):
 
         self.user_options = {
             'bind': config.get("Server Parameters", "host") + ":" + config.get("Server Parameters", "port"),
+            'worker-class': 'eventlet',  # Alternatives: gevent and greenlet
             'workers': workers,
             'loglevels': self.loglevels,
             'loglevel': self.loglevels[config.getint("Server Parameters", "loglevel")],
